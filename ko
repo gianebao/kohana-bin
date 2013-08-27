@@ -1,0 +1,74 @@
+#!/usr/bin/php -q
+<?php
+define('DS', DIRECTORY_SEPARATOR);
+define('BIN_PATH', dirname(__FILE__));
+define('SETUP_PATH', BIN_PATH);
+
+define('ROOT_PATH', dirname(SETUP_PATH));
+
+define('UTIL_PATH', BIN_PATH . DS . 'utils');
+
+define('LIB_PATH', BIN_PATH . DS . 'lib');
+define('LIB_EXT', '.php');
+
+define('SOURCE_PATH', BIN_PATH . DS . 'source');
+
+define('CONFIG_PATH', BIN_PATH . DS . 'conf');
+define('CONFIG', CONFIG_PATH . DS . 'ko.ini');
+
+require CONFIG_PATH . DS . 'help.php';
+
+function _verbose($msg)
+{
+    $msg = str_replace(ROOT_PATH, '.', $msg);
+    echo "ko: ${msg}\n";
+}
+
+if (file_exists(CONFIG))
+{
+    try
+    {
+        $config = parse_ini_file(CONFIG, true);
+    }
+    catch (Exception $e)
+    {
+        $config = array();
+    }
+}
+
+if (empty($config))
+{
+    $config = array();
+}
+
+$root = ROOT_PATH;
+
+$ARGS = $argv;
+
+$lib = empty($ARGS) || empty($ARGS[1])? 'help': strtolower($ARGS[1]);
+$lib_path = LIB_PATH . DS . $lib . LIB_EXT;
+
+if (!file_exists($lib_path))
+{
+    _verbose("'${lib}' is not a valid `ko` command. See 'ko help'. \n");
+    exit();
+}
+
+if ('config' !== $lib)
+{
+    define('CLASS_PATH', !empty($config['class']['path']) ? $config['class']['path']: 'classes');
+    define('VIEW_PATH', !empty($config['view']['path']) ? $config['view']['path']: 'views');
+    define('MOD_NAME', !empty($config['mod']['name']) ? $config['mod']['name']: basename($root));
+    define('MOD_BASE_PATH', !empty($config['mod']['base']['path']) ? $config['mod']['base']['path']: CLASS_PATH . DS . MOD_NAME);
+    
+    if (!is_dir($root . DS . CLASS_PATH))
+    {
+        _verbose("Failed to locate `classes` folder.\n\n"
+                 . "run `mkdir -p " . CLASS_PATH . "`\n"
+                 . "or manually configure by using 'ko config class.path <CLASS_PATH>'.");
+        exit("\n");
+    }
+}
+
+include $lib_path;
+echo "\n";
